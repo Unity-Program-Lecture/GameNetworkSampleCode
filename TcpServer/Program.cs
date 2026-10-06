@@ -3,7 +3,8 @@ using System.Net.Sockets;
 
 internal class Program
 {
-    private static List<Session> Clients = new List<Session>();
+    private static readonly List<Session> Clients = new List<Session>();
+    private static readonly object _clientLock = new object();
 
     public static async Task Main()
     {
@@ -38,7 +39,11 @@ internal class Program
                 }
 
                 session = new Session(nickname, writer);
-                Clients.Add(session);
+
+                lock (_clientLock)
+                {
+                    Clients.Add(session);
+                }
 
                 await BroadcastMesageAsync($"{nickname} has joined the chat.");
 
@@ -64,7 +69,11 @@ internal class Program
             {
                 if (session is not null)
                 {
-                    Clients.Remove(session);
+                    lock (_clientLock)
+                    {
+                        Clients.Remove(session);
+                    }
+
                     Console.WriteLine($"{session.Nickname} has disconnected.");
                 }
             }
@@ -73,7 +82,14 @@ internal class Program
 
     private static async Task BroadcastMesageAsync(string message)
     {
-        foreach (Session client in Clients)
+        Session[] sessions = null;
+
+        lock (_clientLock)
+        {
+            sessions = Clients.ToArray();
+        }
+
+        foreach (Session client in sessions)
         {
             try
             {
