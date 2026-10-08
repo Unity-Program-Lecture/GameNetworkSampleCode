@@ -28,11 +28,11 @@ internal class Program
             using StreamReader reader = new StreamReader(stream);
             using StreamWriter writer = new StreamWriter(stream) { AutoFlush = true };
 
-            Session session = null;
+            Session? session = null;
 
             try
             {
-                string nickname = await reader.ReadLineAsync();
+                string? nickname = await reader.ReadLineAsync();
                 if (string.IsNullOrEmpty(nickname))
                 {
                     return;
@@ -57,7 +57,20 @@ internal class Program
 
                     if (!string.IsNullOrWhiteSpace(message))
                     {
-                        await BroadcastMesageAsync($"[{nickname}] {message}");
+                        string[] splitMessage = message.Split('|');
+                        if(splitMessage.Length != 2)
+                        {
+                            await writer.WriteLineAsync("Invalid message format. Use: <type>|<message>");
+                            continue;
+                        }
+
+                        switch(splitMessage[0])
+                        {
+                            case "CHAT":
+                                await BroadcastMesageAsync($"CHAT|[{nickname}] {splitMessage[1]}");
+                                await BroadcastMesageAsync($"SYSTEM|{nickname} sent a chat message.");
+                                break;
+                        }
                     }
                 }
             }
@@ -82,7 +95,7 @@ internal class Program
 
     private static async Task BroadcastMesageAsync(string message)
     {
-        Session[] sessions = null;
+        Session[]? sessions = null;
 
         lock (_clientLock)
         {

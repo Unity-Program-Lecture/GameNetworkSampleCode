@@ -37,7 +37,24 @@ internal class Program
                     break;
                 }
 
-                Console.WriteLine(message);
+                string[] splitMessage = message.Split('|');
+                if (splitMessage.Length != 2)
+                {
+                    continue;
+                }
+
+                switch (splitMessage[0])
+                {
+                    case "CHAT":
+                        Console.WriteLine(splitMessage[1]);
+                        break;
+
+                    case "SYSTEM":
+                        Console.WriteLine($"[SYSTEM] {splitMessage[1]}");
+                        break;
+                }
+
+
             }
         }
         catch (Exception ex)
@@ -60,7 +77,7 @@ internal class Program
 
                 if (!string.IsNullOrWhiteSpace(message))
                 {
-                    await writer.WriteLineAsync(message);
+                    await writer.WriteLineAsync($"CHAT|{message}");
                 }
             }
         }
