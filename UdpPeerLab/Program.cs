@@ -4,6 +4,9 @@ using System.Text;
 
 internal class Program
 {
+    private static uint _sequenceId = 0;
+    private static uint _lastRecievedSequenceId = 0;
+
     private static async Task Main(string[] args)
     {
         if (args.Length < 3)
@@ -50,9 +53,9 @@ internal class Program
 
                 if (!string.IsNullOrWhiteSpace(input))
                 {
-                    byte[] data = Encoding.UTF8.GetBytes(input);
+                    byte[] data = Encoding.UTF8.GetBytes($"{++_sequenceId}|{input}");
                     await peer.SendAsync(data, data.Length, remoteEndPoint);
-                    Console.WriteLine($"보낸 메시지: {input}");
+                    Console.WriteLine($"보낸 메시지: {input} [sequenceId: {_sequenceId}]");
                 }
             }
         }
@@ -74,7 +77,21 @@ internal class Program
             {
                 UdpReceiveResult result = await peer.ReceiveAsync();
                 string receivedMessage = Encoding.UTF8.GetString(result.Buffer);
-                Console.WriteLine($"받은 메시지: {receivedMessage}");
+                string[] parts = receivedMessage.Split('|');
+                if (parts.Length != 2 || !uint.TryParse(parts[0], out uint sequenceId))
+                {
+                    throw new Exception("잘못된 메시지 형식입니다.");
+                }
+
+                if (_lastRecievedSequenceId >= sequenceId)
+                {
+                    Console.WriteLine($"중복된 메시지 수신: {receivedMessage}");
+                    continue;
+                }
+
+                _lastRecievedSequenceId = sequenceId;
+
+                Console.WriteLine($"받은 메시지: {parts[1]} [sequenceId: {sequenceId}]");
             }
         }
         catch (Exception ex)
